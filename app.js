@@ -44,7 +44,8 @@ const userSchema = new mongoose.Schema ({
     email: String,
     password: String,
     googleId: String,
-    instagramId: String
+    instagramId: String,
+    secret: String
 });
 
 userSchema.plugin(passportLocalMongoose);
@@ -151,11 +152,30 @@ app.get("/register", (req,res)=>{
 });
 
 app.get("/secrets", (req,res)=>{
+    // if(req.isAuthenticated()){
+    //     res.render("secrets");
+    // }else{
+    //     res.redirect("/login");
+    // }
+
+    User.find({"secret":{$ne: null}}, (err,foundUser)=>{
+        if(err){
+            console.log(err);
+        }else{
+            if(foundUser){
+                res.render("secrets", {usersWithSecrets: foundUser});
+            }
+        }
+    });
+});
+
+app.get("/submit", (req,res)=>{
     if(req.isAuthenticated()){
-        res.render("secrets");
+        res.render("submit");
     }else{
         res.redirect("/login");
     }
+    
 });
 
 /////////// GET METHOD ////////////////////////////////
@@ -238,6 +258,26 @@ app.post("/login", (req,res)=>{
         }
     });
 
+});
+
+app.post("/submit", (req,res)=>{
+    const submittedSecret = req.body.secret;
+
+    console.log(req.body);
+    console.log(req.user);
+
+    User.findById(req.user.id, (err,foundUser)=>{
+        if(err){
+            console.log(err);
+        }else{
+            if(foundUser){
+                foundUser.secret = submittedSecret;
+                foundUser.save(()=>{
+                    res.redirect("/secrets")
+                });
+            }
+        }
+    });
 });
 
 /////////// POST METHOD ///////////////////////////////
