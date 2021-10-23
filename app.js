@@ -15,6 +15,7 @@ const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const findOrCreate = require('mongoose-findorcreate');
+const InstagramStrategy = require('passport-instagram').Strategy;
 ///////////// REQUIRE SECTION //////////////////////////
 
 //////////// APP USE SECTION ///////////////////////////
@@ -42,7 +43,8 @@ mongoose.connect("mongodb://localhost:27017/userDB");
 const userSchema = new mongoose.Schema ({
     email: String,
     password: String,
-    googleId: String
+    googleId: String,
+    instagramId: String
 });
 
 userSchema.plugin(passportLocalMongoose);
@@ -84,6 +86,23 @@ passport.use(new GoogleStrategy({
 
 ///////////// GOOGLE OAUTH 2.0 /////////////////////////
 
+///////////// INSTAGRAM OAUTH 2.0 /////////////////////////
+passport.use(new InstagramStrategy({
+    clientID: process.env.INSTAGRAM_CLIENT_ID,
+    clientSecret: process.env.INSTAGRAM_CLIENT_SECRET,
+    callbackURL: "http://localhost:3000/auth/instagram/secrets"
+  },
+  function(accessToken, refreshToken, profile, done) {
+      console.log(profile);
+    User.findOrCreate({ instagramId: profile.id }, function (err, user) {
+      return done(err, user);
+    });
+  }
+));
+
+///////////// INSTAGRAM OAUTH 2.0 /////////////////////////
+
+
 //////////// MONGOOSE(MONGODB) ////////////////////////
 
 
@@ -104,6 +123,18 @@ app.get("/auth/google/secrets",
         res.redirect("/secrets");
     }
 )
+
+app.get("/auth/instagram",
+    passport.authenticate("instagram")
+);
+
+app.get("/auth/instagram/secrets",
+    passport.authenticate("instagram", {failureRedirect: "/login"}),
+    (req,res)=>{
+        //Succesfull authentication, redirect to secret route
+        res.redirect("/secrets");
+    }
+);
 
 app.get("/login", (req,res)=>{
     res.render("login");
